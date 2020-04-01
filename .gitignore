@@ -1,0 +1,8 @@
+# Distribution/binaries
+target
+lib
+*.jar
+
+# Editor related
+.settings
+.classpath

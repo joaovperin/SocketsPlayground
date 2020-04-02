@@ -3,7 +3,11 @@
  */
 package br.com.jpe.socketscore;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.net.Socket;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -32,9 +36,13 @@ public class CommunicationThread {
             if (socket == null || !socket.isConnected()) {
                 throw new RuntimeException("Socket is not connected");
             }
-            // Open streams
             try {
-                commMethod.doCommunication(socket.getInputStream(), socket.getOutputStream());
+                // Open streams
+                try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+                    try (BufferedWriter out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()))) {
+                        commMethod.doCommunication(in, out);
+                    }
+                }
             } catch (IOException ex) {
                 System.err.println("Failed to open Streams!");
                 ex.printStackTrace(System.err);

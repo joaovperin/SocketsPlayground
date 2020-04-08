@@ -4,13 +4,11 @@
 package br.com.jpe.socketsserver;
 
 import br.com.jpe.socketscore.CommunicationThread;
-import br.com.jpe.socketscore.InputObject;
-import br.com.jpe.socketscore.OutputObject;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
+import br.com.jpe.socketscore.DadosParaCalculo;
+import br.com.jpe.socketscore.RetornoCalculo;
+import br.com.jpe.socketscore.SocketInputCallback;
+import com.google.gson.Gson;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.util.stream.Stream;
 
@@ -23,31 +21,33 @@ public class Server {
     private ServerSocket serverSocket;
     private boolean running = false;
 
-    public void listen() throws IOException {
+    private static final Gson gson = new Gson();
+
+    public void listen(final SocketInputCallback callback) throws IOException {
         if (serverSocket != null) {
             throw new RuntimeException("Server socket already listening!");
         }
-        System.out.println("Listening...");
+        System.out.printf("Listening to port %d...\n", kPort);
         serverSocket = new ServerSocket(kPort);
         running = true;
         while (true) {
             if (running) {
                 CommunicationThread.start(serverSocket.accept(), (iStream, oStream) -> {
-                    // Open streams
-                    try (BufferedReader in = new BufferedReader(new InputStreamReader(iStream))) {
-                        try (BufferedWriter out = new BufferedWriter(new OutputStreamWriter(oStream))) {
-                            // Reads client request
-                            StringBuilder sb = new StringBuilder();
-                            try (Stream<String> lines = in.lines()) {
-                                lines.forEach(line -> sb.append(line));
-                            }
-                            System.out.println(new InputObject().withMessage(sb.toString()));
-                            // Send response to client
-                            out.write(new OutputObject().withMessage("[RES] Hello, from server!").serialize());
-                            out.flush();
-                        }
+                    // Reads client request
+                    StringBuilder sb = new StringBuilder();
+                    try (Stream<String> lines = iStream.lines()) {
+                        lines.forEach(line -> sb.append(line));
                     }
+                    // Convert to calc data
+                    DadosParaCalculo dados = gson.fromJson(sb.toString(), DadosParaCalculo.class);
+                    System.out.println(dados.toString());
 
+                    // Exec callback
+                    RetornoCalculo retornoCalculo = callback.executa(dados);
+
+                    // Send response to client
+                    oStream.write(gson.toJson(retornoCalculo));
+                    oStream.flush();
                 });
 
             }

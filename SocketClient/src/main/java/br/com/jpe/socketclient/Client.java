@@ -4,13 +4,10 @@
 package br.com.jpe.socketclient;
 
 import br.com.jpe.socketscore.CommunicationThread;
-import br.com.jpe.socketscore.InputObject;
-import br.com.jpe.socketscore.OutputObject;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
+import br.com.jpe.socketscore.DadosParaCalculo;
+import br.com.jpe.socketscore.RetornoCalculo;
+import com.google.gson.Gson;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -21,33 +18,42 @@ import java.util.stream.Stream;
  */
 public class Client {
 
+    private static final Gson gson = new Gson();
+
     private static final int kPort = 8190;
 
     public void startCommunication() throws IOException {
-        final Socket socket = connect("localhost", kPort);
+        startCommunication("localhost");
+    }
+
+    public void startCommunication(String host) throws IOException {
+        final Socket socket = connect(host, kPort);
         CommunicationThread.start(socket, (iStream, oStream) -> {
+            String dadosCalculo = gson.toJson(new DadosParaCalculo()
+                    .withCodigoCliente(3)
+                    .withCodigoProduto(8700));
+
             // Send a message to the server
-            try (BufferedWriter out = new BufferedWriter(new OutputStreamWriter(oStream))) {
-                out.write(new InputObject().withMessage("[REQ]Hello, guy!").serialize());
-                out.flush();
-                socket.shutdownOutput();
-                // Receive's server response
-                try (BufferedReader in = new BufferedReader(new InputStreamReader(iStream))) {
-                    StringBuilder sb = new StringBuilder();
-                    try (Stream<String> lines = in.lines()) {
-                        lines.forEach(line -> sb.append(line));
-                    }
-                    System.out.println(new OutputObject().withMessage(sb.toString()));
-                }
+            oStream.write(dadosCalculo);
+            oStream.flush();
+            socket.shutdownOutput();
+            // Receive's server response
+            StringBuilder sb = new StringBuilder();
+            try (Stream<String> lines = iStream.lines()) {
+                lines.forEach(line -> sb.append(line));
             }
+
+            RetornoCalculo retornoCalculo = gson.fromJson(sb.toString(), RetornoCalculo.class);
+            System.out.println(retornoCalculo);
         });
     }
 
     private Socket connect(String host, int port) throws IOException {
         try {
+            System.out.printf("Connecting on host %s:%d...", host, port);
             InetAddress.getByName(host);
             Socket socket = new Socket(host, port);
-            socket.setSoTimeout(2000);
+            socket.setSoTimeout(5000);
             return socket;
         } catch (UnknownHostException ex) {
             throw new IOException("Host not found", ex);

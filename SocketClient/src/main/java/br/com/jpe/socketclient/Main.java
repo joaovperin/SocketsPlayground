@@ -12,7 +12,11 @@ public class Main {
 
     public static void main(String[] args) throws IOException {
         Client client = new Client();
-        client.startCommunication();
+        if (args.length > 0 && args[0] != null) {
+            client.startCommunication(args[0]);
+        } else {
+            client.startCommunication();
+        }
     }
 
 }

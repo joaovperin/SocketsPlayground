@@ -3,9 +3,9 @@
  */
 package br.com.jpe.socketscore;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 
 /**
  * Communication method
@@ -13,6 +13,6 @@ import java.io.OutputStream;
 @FunctionalInterface
 public interface CommMethod {
 
-    public void doCommunication(InputStream iStream, OutputStream oStream) throws IOException;
+    public void doCommunication(BufferedReader iStream, BufferedWriter oStream) throws IOException;
 
 }
